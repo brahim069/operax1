@@ -212,7 +212,7 @@ export default function PresencePage() {
   const pointagesByWorker = {};
 
   pointages.forEach((p) => {
-    const arrivee = new Date(p.heure_arrivee);
+      const arrivee = new Date(p.heure_arrivee);
     const status = getStatusFromArrival(p.heure_arrivee);
     if (
       !p.paid &&

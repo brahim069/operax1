@@ -360,17 +360,17 @@ export default function WorkersPage() {
                             <TableCell className={tableCellClass}>{formatDate(worker.createdAt)}</TableCell>
                             <TableCell className={`${tableCellClass} text-right`}>
                               <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
                                   onClick={() => {
                                     setWorkerToDeleteId(worker.id);
                                     setIsDeleteDialogOpen(true);
                                   }}
-                                  className="hover:bg-destructive/10 hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                            className="hover:bg-destructive/10 hover:text-destructive"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
                               </div>
                             </TableCell>
                           </TableRow>
