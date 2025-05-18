@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Edit, Trash2, Calendar, CheckCircle, CheckCircle2, ClipboardList, Clock, UserCheck, BadgeCheck, Award, Loader2, Clock4 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Calendar, CheckCircle, CheckCircle2, ClipboardList, Clock, UserCheck, BadgeCheck, Award, Loader2, Clock4, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Task, Worker } from "@/types";
 import { format } from "date-fns";
@@ -35,6 +35,58 @@ const tableHeaderClass = "bg-gradient-to-r from-primary/10 to-blue-100 text-prim
 const tableRowHoverClass = "hover:bg-primary/5 transition-colors duration-200";
 const tableCellClass = "py-3 px-4 text-gray-700 text-sm";
 const tableHeadCellClass = "py-3 px-4 text-gray-600 text-xs tracking-wider uppercase";
+
+// Pagination component
+const Pagination = ({ 
+  currentPage, 
+  totalPages, 
+  onPageChange 
+}: { 
+  currentPage: number; 
+  totalPages: number; 
+  onPageChange: (page: number) => void;
+}) => {
+  return (
+    <div className="flex items-center justify-between px-2 py-4">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Précédent
+        </Button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <Button
+              key={page}
+              variant={currentPage === page ? "default" : "outline"}
+              size="sm"
+              onClick={() => onPageChange(page)}
+              className="w-8 h-8"
+            >
+              {page}
+            </Button>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Suivant
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="text-sm text-muted-foreground">
+        Page {currentPage} sur {totalPages}
+      </div>
+    </div>
+  );
+};
 
 export default function TasksPage() {
   const { tasks, workers, addTask, updateTask, deleteTask, toggleTaskCompletion, fetchTasks } = useApp();
@@ -63,6 +115,10 @@ export default function TasksPage() {
   
   // Add loading state
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Number of items to show per page
   
   // Simulate loading on mount
   useEffect(() => {
@@ -139,6 +195,19 @@ export default function TasksPage() {
     workerFilter,
     sortBy
   ]);
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredAndSortedTasks.length / itemsPerPage);
+  const paginatedTasks = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedTasks.slice(startIndex, endIndex);
+  }, [filteredAndSortedTasks, currentPage, itemsPerPage]);
+  
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMonth, selectedYear, searchQuery, statusFilter, workerFilter, sortBy]);
   
   // Générer les jours du mois sélectionné
   const getDaysInMonth = () => {
@@ -264,255 +333,260 @@ export default function TasksPage() {
   };
   
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
       <AppHeader />
       
-      <main className="flex-grow p-4 md:p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              Agenda des Tâches
+      <main className="container mx-auto p-4 space-y-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            Agenda des Tâches
+            <HelpTooltip 
+              content="Gérez et suivez toutes les tâches de l'atelier"
+              side="right"
+            />
+          </h1>
+          <div className="flex gap-2">
+            <Button onClick={handleOpenAddDialog} className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Ajouter une tâche
+            </Button>
+          </div>
+        </div>
+        
+        <Card className={tableCardClass + " shadow-md border-primary/10 mb-6"}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Agenda des tâches
               <HelpTooltip 
-                content="Gérez et suivez toutes les tâches de l'atelier"
+                content="Filtrez les tâches par mois et année"
                 side="right"
               />
-            </h1>
-            <div className="flex gap-2">
-              <Button onClick={handleOpenAddDialog} className="flex items-center gap-2">
-                <PlusCircle className="h-4 w-4" />
-                Ajouter une tâche
-              </Button>
-            </div>
-          </div>
-          
-          <div>
-            <Card className={tableCardClass + " shadow-md border-primary/10 mb-6"}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  Agenda des tâches
-                  <HelpTooltip 
-                    content="Filtrez les tâches par mois et année"
-                    side="right"
-                  />
-                </CardTitle>
-                <CardDescription>Gestion des tâches pour les 12 mois de l'année</CardDescription>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <Label htmlFor="month">Mois</Label>
-                    <Select 
-                      value={selectedMonth}
-                      onValueChange={setSelectedMonth}
-                    >
-                      <SelectTrigger id="month">
-                        <SelectValue placeholder="Sélectionnez un mois" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MONTHS.map((month, index) => (
-                          <SelectItem key={index + 1} value={(index + 1).toString()}>
-                            {month}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="year">Année</Label>
-                    <Select 
-                      value={selectedYear}
-                      onValueChange={setSelectedYear}
-                    >
-                      <SelectTrigger id="year">
-                        <SelectValue placeholder="Sélectionnez une année" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {YEARS.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <SearchFilter
-                  searchPlaceholder="Rechercher une tâche..."
-                  onSearchChange={setSearchQuery}
-                  filters={[
-                    {
-                      id: "sort",
-                      label: "Trier par",
-                      options: [
-                        { value: "date", label: "Date" },
-                        { value: "title", label: "Titre" },
-                        { value: "status", label: "Statut" }
-                      ],
-                      value: sortBy,
-                      onChange: setSortBy
-                    },
-                    {
-                      id: "status",
-                      label: "Statut",
-                      options: [
-                        { value: "all", label: "Tous" },
-                        { value: "completed", label: "Terminées" },
-                        { value: "pending", label: "En cours" }
-                      ],
-                      value: statusFilter,
-                      onChange: setStatusFilter
-                    },
-                    {
-                      id: "worker",
-                      label: "Ouvrier assigné",
-                      options: [
-                        { value: "all", label: "Tous" },
-                        { value: "unassigned", label: "Non assignées" },
-                        ...workers.map(worker => ({
-                          value: worker.id,
-                          label: `${worker.firstName} ${worker.lastName}`
-                        }))
-                      ],
-                      value: workerFilter,
-                      onChange: setWorkerFilter
-                    }
-                  ]}
-                  className="mt-4"
-                />
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-xl overflow-hidden border border-gray-200">
-                  <Table>
-                    <TableHeader className={tableHeaderClass}>
-                      <TableRow>
-                        <TableHead className={tableHeadCellClass}><Clock className="inline h-4 w-4 mr-1 text-blue-600" />Jour</TableHead>
-                        <TableHead className={tableHeadCellClass}><ClipboardList className="inline h-4 w-4 mr-1 text-primary" />Titre</TableHead>
-                        <TableHead className={tableHeadCellClass}><ClipboardList className="inline h-4 w-4 mr-1 text-primary" />Description</TableHead>
-                        <TableHead className={tableHeadCellClass}><UserCheck className="inline h-4 w-4 mr-1 text-primary" />Assigné à</TableHead>
-                        <TableHead className={tableHeadCellClass}><BadgeCheck className="inline h-4 w-4 mr-1 text-green-600" />Statut</TableHead>
-                        <TableHead className={tableHeadCellClass}><Award className="inline h-4 w-4 mr-1 text-yellow-600" />Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
-                            <div className="flex items-center justify-center">
-                              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                              <span className="ml-2">Chargement...</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : filteredAndSortedTasks.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
-                            <div className="flex flex-col items-center justify-center text-gray-500">
-                              <ClipboardList className="h-8 w-8 mb-2" />
-                              <p className="font-medium">{searchQuery ? "Aucun résultat trouvé" : "Aucune tâche trouvée"}</p>
-                              <p className="text-sm mt-1">
-                                {searchQuery 
-                                  ? "Essayez de modifier vos critères de recherche"
-                                  : "Commencez par ajouter des tâches à l'agenda"}
-                              </p>
-                              {!searchQuery && (
-                                <Button onClick={handleOpenAddDialog} className="mt-4">
-                                  Ajouter une tâche
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredAndSortedTasks.map((task) => (
-                          <TableRow key={task.id} className={tableRowHoverClass}>
-                            <TableCell className={tableCellClass}>{task.day}</TableCell>
-                            <TableCell className={tableCellClass + " font-medium"}>{task.title}</TableCell>
-                            <TableCell className={tableCellClass}>{task.description || "-"}</TableCell>
-                            <TableCell className={tableCellClass + " flex items-center gap-2"}>
-                              <UserCheck className="h-4 w-4 text-primary" />
-                              {getWorkerName(task.workerId)}
-                            </TableCell>
-                            <TableCell className={tableCellClass}>
-                              <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border font-medium ${task.completed ? "bg-green-50 border-green-200 text-green-600" : "bg-yellow-50 border-yellow-200 text-yellow-600"}`}>
-                                {task.completed ? <BadgeCheck className="h-4 w-4 animate-pulse text-green-600" /> : <Clock4 className="h-4 w-4 animate-bounce text-yellow-600" />}
-                                {task.completed ? "Terminée" : "En cours"}
-                              </span>
-                            </TableCell>
-                            <TableCell className={tableCellClass + " flex gap-2"}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenEditDialog(task)}
-                                className="hover:bg-primary/10"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    className="hover:bg-destructive/10 hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Cette action est irréversible. Cela supprimera définitivement la tâche.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDeleteTask(task.id)}
-                                      className="bg-destructive hover:bg-destructive/90"
-                                    >
-                                      Supprimer
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {MONTHS.map((month, index) => {
-              const monthNumber = index + 1;
-              const tasksCount = tasks.filter(
-                task => task.month === monthNumber && task.year.toString() === selectedYear
-              ).length;
-              
-              return (
-                <Card 
-                  key={monthNumber} 
-                  className={`cursor-pointer hover:border-primary/30 transition-colors ${
-                    parseInt(selectedMonth) === monthNumber ? "border-primary" : ""
-                  }`}
-                  onClick={() => setSelectedMonth(monthNumber.toString())}
+            </CardTitle>
+            <CardDescription>Gestion des tâches pour les 12 mois de l'année</CardDescription>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <Label htmlFor="month">Mois</Label>
+                <Select 
+                  value={selectedMonth}
+                  onValueChange={setSelectedMonth}
                 >
-                  <CardHeader className="p-4">
-                    <CardTitle className="text-lg flex justify-between items-center">
-                      <span>{month}</span>
-                      <span className="text-sm px-2 py-1 bg-secondary rounded-full">
-                        {tasksCount} tâches
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                </Card>
-              );
-            })}
-          </div>
+                  <SelectTrigger id="month">
+                    <SelectValue placeholder="Sélectionnez un mois" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((month, index) => (
+                      <SelectItem key={index + 1} value={(index + 1).toString()}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="year">Année</Label>
+                <Select 
+                  value={selectedYear}
+                  onValueChange={setSelectedYear}
+                >
+                  <SelectTrigger id="year">
+                    <SelectValue placeholder="Sélectionnez une année" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <SearchFilter
+              searchPlaceholder="Rechercher une tâche..."
+              onSearchChange={setSearchQuery}
+              filters={[
+                {
+                  id: "sort",
+                  label: "Trier par",
+                  options: [
+                    { value: "date", label: "Date" },
+                    { value: "title", label: "Titre" },
+                    { value: "status", label: "Statut" }
+                  ],
+                  value: sortBy,
+                  onChange: setSortBy
+                },
+                {
+                  id: "status",
+                  label: "Statut",
+                  options: [
+                    { value: "all", label: "Tous" },
+                    { value: "completed", label: "Terminées" },
+                    { value: "pending", label: "En cours" }
+                  ],
+                  value: statusFilter,
+                  onChange: setStatusFilter
+                },
+                {
+                  id: "worker",
+                  label: "Ouvrier assigné",
+                  options: [
+                    { value: "all", label: "Tous" },
+                    { value: "unassigned", label: "Non assignées" },
+                    ...workers.map(worker => ({
+                      value: worker.id,
+                      label: `${worker.firstName} ${worker.lastName}`
+                    }))
+                  ],
+                  value: workerFilter,
+                  onChange: setWorkerFilter
+                }
+              ]}
+              className="mt-4"
+            />
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-xl overflow-hidden border border-gray-200">
+              <Table>
+                <TableHeader className={tableHeaderClass}>
+                  <TableRow>
+                    <TableHead className={tableHeadCellClass}><Clock className="inline h-4 w-4 mr-1 text-blue-600" />Jour</TableHead>
+                    <TableHead className={tableHeadCellClass}><ClipboardList className="inline h-4 w-4 mr-1 text-primary" />Titre</TableHead>
+                    <TableHead className={tableHeadCellClass}><ClipboardList className="inline h-4 w-4 mr-1 text-primary" />Description</TableHead>
+                    <TableHead className={tableHeadCellClass}><UserCheck className="inline h-4 w-4 mr-1 text-primary" />Assigné à</TableHead>
+                    <TableHead className={tableHeadCellClass}><BadgeCheck className="inline h-4 w-4 mr-1 text-green-600" />Statut</TableHead>
+                    <TableHead className={tableHeadCellClass}><Award className="inline h-4 w-4 mr-1 text-yellow-600" />Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          <span className="ml-2">Chargement...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedTasks.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex flex-col items-center justify-center text-gray-500">
+                          <ClipboardList className="h-8 w-8 mb-2" />
+                          <p className="font-medium">{searchQuery ? "Aucun résultat trouvé" : "Aucune tâche trouvée"}</p>
+                          <p className="text-sm mt-1">
+                            {searchQuery 
+                              ? "Essayez de modifier vos critères de recherche"
+                              : "Commencez par ajouter des tâches à l'agenda"}
+                          </p>
+                          {!searchQuery && (
+                            <Button onClick={handleOpenAddDialog} className="mt-4">
+                              Ajouter une tâche
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedTasks.map((task) => (
+                      <TableRow key={task.id} className={tableRowHoverClass}>
+                        <TableCell className={tableCellClass}>{task.day}</TableCell>
+                        <TableCell className={tableCellClass + " font-medium"}>{task.title}</TableCell>
+                        <TableCell className={tableCellClass}>{task.description || "-"}</TableCell>
+                        <TableCell className={tableCellClass + " flex items-center gap-2"}>
+                          <UserCheck className="h-4 w-4 text-primary" />
+                          {getWorkerName(task.workerId)}
+                        </TableCell>
+                        <TableCell className={tableCellClass}>
+                          <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border font-medium ${task.completed ? "bg-green-50 border-green-200 text-green-600" : "bg-yellow-50 border-yellow-200 text-yellow-600"}`}>
+                            {task.completed ? <BadgeCheck className="h-4 w-4 animate-pulse text-green-600" /> : <Clock4 className="h-4 w-4 animate-bounce text-yellow-600" />}
+                            {task.completed ? "Terminée" : "En cours"}
+                          </span>
+                        </TableCell>
+                        <TableCell className={tableCellClass + " flex gap-2"}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenEditDialog(task)}
+                            className="hover:bg-primary/10"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Cette action est irréversible. Cela supprimera définitivement la tâche.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteTask(task.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Add Pagination */}
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
+          </CardContent>
+        </Card>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {MONTHS.map((month, index) => {
+            const monthNumber = index + 1;
+            const tasksCount = tasks.filter(
+              task => task.month === monthNumber && task.year.toString() === selectedYear
+            ).length;
+            
+            return (
+              <Card 
+                key={monthNumber} 
+                className={`cursor-pointer hover:border-primary/30 transition-colors ${
+                  parseInt(selectedMonth) === monthNumber ? "border-primary" : ""
+                }`}
+                onClick={() => setSelectedMonth(monthNumber.toString())}
+              >
+                <CardHeader className="p-4">
+                  <CardTitle className="text-lg flex justify-between items-center">
+                    <span>{month}</span>
+                    <span className="text-sm px-2 py-1 bg-secondary rounded-full">
+                      {tasksCount} tâches
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            );
+          })}
         </div>
       </main>
       
@@ -525,31 +599,43 @@ export default function TasksPage() {
               Remplissez les informations pour créer une nouvelle tâche
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">Titre de la tâche</Label>
-              <Input 
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Titre</Label>
+              <Input
                 id="title"
-                value={taskTitle} 
+                value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
-                placeholder="Entrez le titre de la tâche"
+                placeholder="Titre de la tâche"
               />
             </div>
-            <div>
-              <Label htmlFor="description">Description (optionnel)</Label>
-              <Input 
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
                 id="description"
-                value={taskDescription} 
+                value={taskDescription}
                 onChange={(e) => setTaskDescription(e.target.value)}
-                placeholder="Entrez la description de la tâche"
+                placeholder="Description de la tâche (optionnel)"
               />
             </div>
-            <div>
-              <Label htmlFor="worker">Ouvrier (optionnel)</Label>
-              <Select 
-                value={taskWorkerId}
-                onValueChange={setTaskWorkerId}
-              >
+            <div className="grid gap-2">
+              <Label htmlFor="day">Jour</Label>
+              <Select value={taskDay} onValueChange={setTaskDay}>
+                <SelectTrigger id="day">
+                  <SelectValue placeholder="Sélectionnez un jour" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: getDaysInMonth() }, (_, i) => i + 1).map((day) => (
+                    <SelectItem key={day} value={day.toString()}>
+                      {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="worker">Ouvrier assigné</Label>
+              <Select value={taskWorkerId} onValueChange={setTaskWorkerId}>
                 <SelectTrigger id="worker">
                   <SelectValue placeholder="Sélectionnez un ouvrier" />
                 </SelectTrigger>
@@ -562,56 +648,6 @@ export default function TasksPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="year">Année</Label>
-                <Select 
-                  value={selectedYear}
-                  onValueChange={setSelectedYear}
-                >
-                  <SelectTrigger id="year">
-                    <SelectValue placeholder="Année" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {YEARS.map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="month">Mois</Label>
-                <Select 
-                  value={selectedMonth}
-                  onValueChange={setSelectedMonth}
-                >
-                  <SelectTrigger id="month">
-                    <SelectValue placeholder="Mois" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTHS.map((month, index) => (
-                      <SelectItem key={index + 1} value={(index + 1).toString()}>
-                        {month}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="day">Jour</Label>
-                <Input
-                  id="day"
-                  type="number"
-                  min="1"
-                  max={getDaysInMonth()}
-                  value={taskDay}
-                  onChange={(e) => setTaskDay(e.target.value)}
-                  placeholder={`Jour (1-${getDaysInMonth()})`}
-                />
-              </div>
             </div>
           </div>
           <DialogFooter>
@@ -634,31 +670,43 @@ export default function TasksPage() {
               Modifiez les informations de la tâche
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-title">Titre de la tâche</Label>
-              <Input 
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-title">Titre</Label>
+              <Input
                 id="edit-title"
-                value={taskTitle} 
+                value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
-                placeholder="Entrez le titre de la tâche"
+                placeholder="Titre de la tâche"
               />
             </div>
-            <div>
-              <Label htmlFor="edit-description">Description (optionnel)</Label>
-              <Input 
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Input
                 id="edit-description"
-                value={taskDescription} 
+                value={taskDescription}
                 onChange={(e) => setTaskDescription(e.target.value)}
-                placeholder="Entrez la description de la tâche"
+                placeholder="Description de la tâche (optionnel)"
               />
             </div>
-            <div>
-              <Label htmlFor="edit-worker">Ouvrier (optionnel)</Label>
-              <Select 
-                value={taskWorkerId}
-                onValueChange={setTaskWorkerId}
-              >
+            <div className="grid gap-2">
+              <Label htmlFor="edit-day">Jour</Label>
+              <Select value={taskDay} onValueChange={setTaskDay}>
+                <SelectTrigger id="edit-day">
+                  <SelectValue placeholder="Sélectionnez un jour" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: getDaysInMonth() }, (_, i) => i + 1).map((day) => (
+                    <SelectItem key={day} value={day.toString()}>
+                      {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-worker">Ouvrier assigné</Label>
+              <Select value={taskWorkerId} onValueChange={setTaskWorkerId}>
                 <SelectTrigger id="edit-worker">
                   <SelectValue placeholder="Sélectionnez un ouvrier" />
                 </SelectTrigger>
@@ -671,18 +719,6 @@ export default function TasksPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit-day">Jour</Label>
-              <Input
-                id="edit-day"
-                type="number"
-                min="1"
-                max={getDaysInMonth()}
-                value={taskDay}
-                onChange={(e) => setTaskDay(e.target.value)}
-                placeholder={`Entrez le jour (1-${getDaysInMonth()})`}
-              />
             </div>
           </div>
           <DialogFooter>
